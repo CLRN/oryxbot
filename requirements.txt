@@ -1,0 +1,4 @@
+aiobotocore
+lxml
+pytest
+tweepy
