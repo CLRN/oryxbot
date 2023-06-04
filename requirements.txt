@@ -1,4 +1,6 @@
 aiobotocore
+aiohttp
+botocore
 lxml
 pytest
 tweepy

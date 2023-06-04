@@ -14,7 +14,7 @@ from parser import parse_losses, Loss
 
 URLS = {"https://www.oryxspioenkop.com/2022/02/attack-on-europe-documenting-ukrainian.html": "ukrainian",
         "https://www.oryxspioenkop.com/2022/02/attack-on-europe-documenting-equipment.html": "russian"}
-S3_PATH = 'oryx/last.json'
+S3_PATH = os.getenv('S3_PATH', 'oryx/last.json')
 
 
 async def compare_with_last(s3) -> List[Tuple[str, Loss]]:
