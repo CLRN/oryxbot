@@ -71,9 +71,13 @@ async def main():
     )
     for country, loss in losses:
         print(country, loss)
-        client.create_tweet(
-            text=f"{country} {loss.type} {loss.status}: {loss.link}",
-        )
+        try:
+            client.create_tweet(
+                text=f"{country} {loss.type} {loss.status}: {loss.link}",
+            )
+        except Exception as e:
+            print(e)
+                
 
 
 if __name__ == '__main__':
