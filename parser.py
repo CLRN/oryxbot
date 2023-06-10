@@ -24,6 +24,8 @@ class Loss:
 
 
 def _extract_tails(root: HtmlElement) -> str:
+    if not root:
+        return ''
     res = root.tail or ''
     for child in root.getchildren():
         res += _extract_tails(child)
