@@ -220,7 +220,7 @@ def save_to_archive():
 
 if __name__ == '__main__':
     parser = ArgumentParser()
-    parser.add_argument("--delta-days", help="Publish summary of losses goign back N days", type=int)
+    parser.add_argument("--delta-days", help="Publish summary of losses going back N days", type=int)
     args = parser.parse_args()
 
     logging.basicConfig(format='%(asctime)s:%(levelname)s:%(name)s:%(message)s')

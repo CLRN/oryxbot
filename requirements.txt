@@ -5,3 +5,4 @@ lxml
 Pillow
 pytest
 tweepy
+waybackpy
