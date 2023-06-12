@@ -1,7 +1,7 @@
 import asyncio
 import json
 import os
-from argparse import ArgumentParser, ArgumentTypeError, Namespace
+from argparse import ArgumentParser
 from collections import defaultdict
 from dataclasses import asdict
 from datetime import date, datetime, timedelta
@@ -14,6 +14,7 @@ from PIL import Image, ImageDraw, ImageFont
 from aiobotocore.session import get_session
 from aiohttp import ClientSession
 from botocore.exceptions import ClientError
+from dateutil.parser import parse as parse_dt
 from tweepy import Client, API, OAuthHandler
 
 from parser import parse_losses, Loss
@@ -62,7 +63,7 @@ async def compare_with_last(s3) -> List[Tuple[str, Loss]]:
     return diff_losses
 
 
-async def compare_against_date(from_dt: date) -> List[Tuple[str, Loss]]:
+async def compare_against_date(from_dt: date) -> Tuple[List[Tuple[str, Loss]], datetime]:
     """
     Fetches both dates from cache and compare
     :param from_dt: date from
@@ -72,7 +73,7 @@ async def compare_against_date(from_dt: date) -> List[Tuple[str, Loss]]:
         async def _get(url: str, dt: date):
             if dt is None:
                 async with session.get(url) as r:
-                    return await r.content.read()
+                    return await r.content.read(), datetime.utcnow()
 
             async with session.get(WAYBACK_URL, params={"url": url, "timestamp": dt.strftime("%Y%m%d")}) as r:
                 data = await r.json()
@@ -80,7 +81,7 @@ async def compare_against_date(from_dt: date) -> List[Tuple[str, Loss]]:
                 if closest['status'] != "200":
                     raise Exception(f"Unable to retrieve snapshot: {data}")
             async with session.get(closest['url']) as r:
-                return await r.read()
+                return await r.read(), parse_dt(closest['timestamp'])
 
         jobs = list()
         for link, date_time in product(URLS.keys(), [from_dt, None]):
@@ -88,14 +89,14 @@ async def compare_against_date(from_dt: date) -> List[Tuple[str, Loss]]:
 
         bodies = await asyncio.gather(*jobs)
 
-    parts = [[bodies[i * 2], bodies[i * 2 + 1]] for i in range(len(bodies) // 2)]
+    parts = [[bodies[i * 2][0], bodies[i * 2 + 1][0]] for i in range(len(bodies) // 2)]
     diff_losses = list()
     for country, data in zip(URLS.values(), parts):
         old, new = list(map(parse_losses, data))
         old = set(old)
         diff_losses.extend([(country, item) for item in new if item not in old])
 
-    return diff_losses
+    return diff_losses, min(map(lambda x: x[1], bodies))
 
 
 async def calc_and_publish_delta():
@@ -159,7 +160,7 @@ def text_to_image(
     return img
 
 
-async def publish_date_diff(losses: List[Tuple[str, Loss]], args: Namespace):
+async def publish_date_diff(losses: List[Tuple[str, Loss]], date_: date):
     country_items = defaultdict(list)
     for country, country_data in groupby(losses, lambda x: x[0]):
         data = list(map(lambda x: x[1], country_data))
@@ -170,7 +171,7 @@ async def publish_date_diff(losses: List[Tuple[str, Loss]], args: Namespace):
                 status_items.append(f"{status}: {len(list(status_data))}")
             country_items[country].append(f", ".join(status_items))
 
-    items = [[f"Losses between {args.from_date.isoformat()} and {args.to_date.isoformat()}"],
+    items = [[f"Losses between {date_.isoformat()} and {datetime.utcnow().isoformat()}"],
              [f"{country.capitalize()} losses: {len(data)}" for country, data in country_items.items()]]
 
     sorted_by_name = {c: sorted(data) for c, data in country_items.items()}
@@ -208,7 +209,7 @@ if __name__ == '__main__':
     args = parser.parse_args()
 
     if args.delta_days:
-        diff = asyncio.run(compare_against_date(datetime.now().date() - timedelta(days=args.delta_days)))
-        asyncio.run(publish_date_diff(diff, args))
+        diff, date = asyncio.run(compare_against_date(datetime.utcnow().date() - timedelta(days=args.delta_days)))
+        asyncio.run(publish_date_diff(diff, date))
     else:
         asyncio.run(calc_and_publish_delta())
