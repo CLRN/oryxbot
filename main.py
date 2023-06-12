@@ -177,7 +177,7 @@ async def publish_date_diff(losses: List[Tuple[str, Loss]], date_: date):
             country_items[country].append(f", ".join(status_items))
 
     now = datetime.utcnow()
-    items = [[f"Losses for {(now - date_).days} day(s) between {date_.isoformat()} and {now.isoformat()}"],
+    items = [[f"Losses for {now - date_} between {date_.isoformat()} and {now.isoformat()}"],
              [f"{country.capitalize()} losses: {len(data)}" for country, data in country_items.items()]]
 
     sorted_by_name = {c: sorted(data) for c, data in country_items.items()}
@@ -206,7 +206,7 @@ async def publish_date_diff(losses: List[Tuple[str, Loss]], date_: date):
         )
         img.save(temp_file.name)
         ret = api.media_upload(filename=temp_file.name)
-    client.create_tweet(text='', media_ids=[ret.media_id_string])
+    client.create_tweet(text=items[0][0], media_ids=[ret.media_id_string])
 
 
 def save_to_archive():
