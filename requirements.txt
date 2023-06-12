@@ -2,5 +2,6 @@ aiobotocore
 aiohttp
 botocore
 lxml
+Pillow
 pytest
 tweepy

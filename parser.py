@@ -55,5 +55,5 @@ def parse_losses(body: bytes) -> Iterator[Loss]:
                 type=match.group(1).strip(':'),
                 status=status.value,
                 number=int(item),
-                link=link.attrib['href'].strip()
+                link='http' + link.attrib['href'].strip().split('http')[-1]
             )

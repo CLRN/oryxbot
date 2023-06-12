@@ -3,5 +3,6 @@ FROM python:3.10
 COPY ./requirements.txt .
 RUN pip install -r requirements.txt
 
+COPY fonts ./fonts
 COPY *.py ./
 ENTRYPOINT ["python", "./main.py"]
