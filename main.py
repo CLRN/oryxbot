@@ -1,5 +1,6 @@
 import asyncio
 import json
+import logging
 import os
 from argparse import ArgumentParser
 from collections import defaultdict
@@ -16,6 +17,7 @@ from aiohttp import ClientSession
 from botocore.exceptions import ClientError
 from dateutil.parser import parse as parse_dt
 from tweepy import Client, API, OAuthHandler
+from waybackpy import Url
 
 from parser import parse_losses, Loss
 
@@ -114,13 +116,13 @@ async def calc_and_publish_delta():
         access_token_secret=os.environ['ACCESS_TOKEN_SECRET'],
     )
     for country, loss in losses:
-        print(country, loss)
+        logging.info(f"{country=}, {loss=}")
         try:
             client.create_tweet(
                 text=f"{country} {loss.type} {loss.status}: {loss.link}",
             )
-        except Exception as e:
-            print(e)
+        except Exception:
+            logging.exception(f"Failed to publish diff")
 
 
 def text_to_image(
@@ -174,7 +176,8 @@ async def publish_date_diff(losses: List[Tuple[str, Loss]], date_: date):
                 status_items.append(f"{status}: {len(list(status_data))}")
             country_items[country].append(f", ".join(status_items))
 
-    items = [[f"Losses between {date_.isoformat()} and {datetime.utcnow().isoformat()}"],
+    now = datetime.utcnow()
+    items = [[f"Losses for {(now - date_).days} day(s) between {date_.isoformat()} and {now.isoformat()}"],
              [f"{country.capitalize()} losses: {len(data)}" for country, data in country_items.items()]]
 
     sorted_by_name = {c: sorted(data) for c, data in country_items.items()}
@@ -206,13 +209,29 @@ async def publish_date_diff(losses: List[Tuple[str, Loss]], date_: date):
     client.create_tweet(text='', media_ids=[ret.media_id_string])
 
 
+def save_to_archive():
+    for url in URLS.keys():
+        new = Url(
+            url=url,
+            user_agent="Mozilla/5.0 (Windows NT 5.1; rv:40.0) Gecko/20100101 Firefox/40.0"
+        ).save()
+        logging.info(f"Saved to {new}")
+
+
 if __name__ == '__main__':
     parser = ArgumentParser()
     parser.add_argument("--delta-days", help="Publish summary of losses goign back N days", type=int)
     args = parser.parse_args()
 
+    logging.basicConfig(format='%(asctime)s:%(levelname)s:%(name)s:%(message)s')
+    logging.getLogger().setLevel(logging.INFO)
+
     if args.delta_days:
-        diff, date = asyncio.run(compare_against_date(datetime.utcnow().date() - timedelta(days=args.delta_days)))
-        asyncio.run(publish_date_diff(diff, date))
+        try:
+            diff, date = asyncio.run(compare_against_date(datetime.utcnow().date() - timedelta(days=args.delta_days)))
+            asyncio.run(publish_date_diff(diff, date))
+        except Exception:
+            logging.exception(f"Failed to process diff")
+        save_to_archive()
     else:
         asyncio.run(calc_and_publish_delta())
