@@ -161,6 +161,9 @@ def text_to_image(
 
 
 async def publish_date_diff(losses: List[Tuple[str, Loss]], date_: date):
+    if not losses:
+        return
+
     country_items = defaultdict(list)
     for country, country_data in groupby(losses, lambda x: x[0]):
         data = list(map(lambda x: x[1], country_data))
