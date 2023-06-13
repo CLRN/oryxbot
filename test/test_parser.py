@@ -1,12 +1,13 @@
-import random
+import os.path
 
-from parser import parse_losses
+from oryxbot.parser import parse_losses, Loss
 
 
 def test_parser():
-    before = list(parse_losses(open('last.html', 'rb').read()))
+    path = os.path.join(os.path.dirname(__file__), 'last.html')
+    before = list(parse_losses(open(path, 'rb').read()))
     after = before.copy()
-    del before[random.randint(0, len(before))]
+    del before[123]
 
     prev = set(before)
     diffed = []
@@ -14,4 +15,5 @@ def test_parser():
         if item not in prev:
             diffed.append(item)
 
-    assert diffed
+    assert diffed == [Loss(type='T-64BV', status='damaged', number=4,
+                           link='https://i.postimg.cc/L52GF2Ln/1001-unkn-tank-dam-23-02-23.jpg')]
