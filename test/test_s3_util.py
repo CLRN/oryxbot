@@ -1,12 +1,12 @@
 import pytest
 from mock import patch, AsyncMock, MagicMock
 
-from oryxbot.s3util import s3_client
+from oryxbot.s3_util import s3_client
 from botocore.exceptions import ClientError
 
 @pytest.mark.asyncio
-@patch('oryxbot.s3util.get_session')
-@patch('oryxbot.s3util.os.environ')
+@patch('oryxbot.s3_util.get_session')
+@patch('oryxbot.s3_util.os.environ')
 async def test_s3_get(env, session):
     client = AsyncMock()
     session.return_value.create_client.return_value = AsyncMock(__aenter__=client)
@@ -19,8 +19,8 @@ async def test_s3_get(env, session):
 
 
 @pytest.mark.asyncio
-@patch('oryxbot.s3util.get_session')
-@patch('oryxbot.s3util.os.environ')
+@patch('oryxbot.s3_util.get_session')
+@patch('oryxbot.s3_util.os.environ')
 async def test_s3_get_no_data(env, session):
     client = AsyncMock()
     session.return_value.create_client.return_value = AsyncMock(__aenter__=client)
@@ -34,8 +34,8 @@ async def test_s3_get_no_data(env, session):
 
 
 @pytest.mark.asyncio
-@patch('oryxbot.s3util.get_session')
-@patch('oryxbot.s3util.os.environ')
+@patch('oryxbot.s3_util.get_session')
+@patch('oryxbot.s3_util.os.environ')
 async def test_s3_get_exception(env, session):
     client = AsyncMock()
     session.return_value.create_client.return_value = AsyncMock(__aenter__=client)
@@ -50,8 +50,8 @@ async def test_s3_get_exception(env, session):
 
 
 @pytest.mark.asyncio
-@patch('oryxbot.s3util.get_session')
-@patch('oryxbot.s3util.os.environ')
+@patch('oryxbot.s3_util.get_session')
+@patch('oryxbot.s3_util.os.environ')
 async def test_s3_put(env, session):
     client = AsyncMock()
     session.return_value.create_client.return_value = AsyncMock(__aenter__=client)

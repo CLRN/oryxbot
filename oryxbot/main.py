@@ -9,15 +9,16 @@ from typing import List, Tuple
 
 from aiohttp import ClientSession
 
-from oryxbot.archiveutil import save_url, url_snapshot
+from oryxbot.archive_util import save_url, url_snapshot
 from oryxbot.parser import parse_losses, Loss
-from oryxbot.s3util import s3_client
-from oryxbot.twitterutil import publish_date_diff, publish_losses
+from oryxbot.s3_util import s3_client
+from oryxbot.twitter_util import publish_date_diff, publish_losses
 
 URLS = {"https://www.oryxspioenkop.com/2022/02/attack-on-europe-documenting-ukrainian.html": "ukrainian",
         "https://www.oryxspioenkop.com/2022/02/attack-on-europe-documenting-equipment.html": "russian"}
 
-S3_PATH = os.getenv('S3_PATH', 'oryx/last.json')
+S3_PATH_LAST = os.getenv('S3_PATH_LAST', 'oryx/last.json')
+S3_PATH_DELTA = os.getenv('S3_PATH_DELTA', f'oryx/{datetime.utcnow().isoformat()}.json')
 
 
 async def compare_with_last() -> List[Tuple[str, Loss]]:
@@ -29,7 +30,7 @@ async def compare_with_last() -> List[Tuple[str, Loss]]:
         bodies = await asyncio.gather(*[_get(url) for url in URLS.keys()])
 
     async with s3_client() as (get, put):
-        last_data = await get(S3_PATH)
+        last_data = await get(S3_PATH_LAST)
 
         diff_losses = list()
         new_losses = list()
@@ -42,7 +43,10 @@ async def compare_with_last() -> List[Tuple[str, Loss]]:
                 if item not in previous:
                     diff_losses.append((country, item))
 
-        await put(S3_PATH, dict(zip(URLS.values(), new_losses)))
+        await put(S3_PATH_LAST, dict(zip(URLS.values(), new_losses)))
+
+        if diff_losses:
+            await put(S3_PATH_DELTA, list(map(lambda x: [x[0], asdict(x[1])], diff_losses)))
 
     return diff_losses
 
@@ -66,7 +70,6 @@ async def compare_against_date(from_dt: date) -> Tuple[List[Tuple[str, Loss]], d
         old, new = list(map(parse_losses, data))
         old = set(old)
         diff_losses.extend([(country, item) for item in new if item not in old])
-
     return diff_losses, min(map(lambda x: x[1], bodies))
 
 
@@ -87,4 +90,4 @@ if __name__ == '__main__':
         list(map(save_url, URLS.keys()))
     else:
         losses = asyncio.run(compare_with_last())
-        publish_losses(losses)
+        asyncio.run(publish_losses(losses))

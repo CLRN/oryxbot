@@ -3,7 +3,7 @@ from datetime import date, datetime
 import pytest
 from mock import MagicMock
 
-from oryxbot.archiveutil import url_snapshot
+from oryxbot.archive_util import url_snapshot
 
 
 @pytest.mark.asyncio

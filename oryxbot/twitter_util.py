@@ -6,8 +6,10 @@ from itertools import groupby, zip_longest
 from tempfile import NamedTemporaryFile
 from typing import List, Tuple
 
+from aiohttp import ClientSession
 from tweepy import Client, API, OAuthHandler
 
+from oryxbot.image_resolver import resolve
 from oryxbot.parser import Loss
 from oryxbot.txt2image import text_to_image
 
@@ -60,18 +62,21 @@ def publish_date_diff(losses: List[Tuple[str, Loss]], date_: date):
     client.create_tweet(text=items[0][0], media_ids=[ret.media_id_string])
 
 
-def publish_losses(losses: List[Tuple[str, Loss]]):
+async def publish_losses(losses: List[Tuple[str, Loss]]):
     client = Client(
         consumer_key=os.environ['CONSUMER_KEY'],
         consumer_secret=os.environ['CONSUMER_SECRET'],
         access_token=os.environ['ACCESS_TOKEN'],
         access_token_secret=os.environ['ACCESS_TOKEN_SECRET'],
     )
-    for country, loss in losses:
-        logging.info(f"{country=}, {loss=}")
-        try:
-            client.create_tweet(
-                text=f"{country} {loss.type} {loss.status}: {loss.link}",
-            )
-        except Exception:
-            logging.exception(f"Failed to publish diff")
+    async with ClientSession() as session:
+        for country, loss in losses:
+            logging.info(f"{country=}, {loss=}")
+            try:
+                ids = await resolve(session, loss.link)
+                # client.create_tweet(
+                #     text=f"{country} {loss.type} {loss.status}: {loss.link}",
+                #     media_ids=
+                # )
+            except Exception:
+                logging.exception(f"Failed to publish diff")
