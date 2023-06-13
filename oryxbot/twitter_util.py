@@ -73,10 +73,9 @@ async def publish_losses(losses: List[Tuple[str, Loss]]):
         for country, loss in losses:
             logging.info(f"{country=}, {loss=}")
             try:
-                ids = await resolve(session, loss.link)
-                # client.create_tweet(
-                #     text=f"{country} {loss.type} {loss.status}: {loss.link}",
-                #     media_ids=
-                # )
+                client.create_tweet(
+                    text=f"{country} {loss.type} {loss.status}: {loss.link}",
+                    media_ids=await resolve(session, loss.link)
+                )
             except Exception:
                 logging.exception(f"Failed to publish diff")
