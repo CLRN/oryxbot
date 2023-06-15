@@ -7,6 +7,7 @@ from PIL import Image
 from aiohttp import ClientSession
 from lxml.html import HtmlElement, etree, html_parser
 from tweepy import API, OAuthHandler
+from tweety.bot import Twitter
 
 TWITTER_HOST = "twitter.com"
 TWEET_PARAMS = {"tweet.fields": "lang",
@@ -24,15 +25,10 @@ async def resolve(session: ClientSession, url: str):
                 while parts and parts[0] != 'status':
                     parts.pop(0)
 
-                url = f"https://api.twitter.com/2/tweets/{parts[1]}"
-                async with session.get(
-                        url,
-                        headers={"Authorization": f"Bearer {os.getenv('READ_TWEET_TOKEN')}"},
-                        params=TWEET_PARAMS,
-                ) as response:
-                    data = await response.json()
-                    logging.info(f"Tweet data: {data}")
-                    return [m['media_key'] for m in data['includes']['media']]
+                reader = Twitter()
+                data = reader.tweet_detail(parts[1])
+                logging.info(f"Tweet data: {data}")
+                return [m['media_key'] for m in data.media]
 
             body = await response.read()
             if body.startswith(b"<!DOCTYPE HTML>"):

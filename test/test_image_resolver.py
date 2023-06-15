@@ -9,16 +9,16 @@ from oryxbot.image_resolver import resolve
 
 @pytest.mark.asyncio
 @patch('oryxbot.image_resolver.os.environ')
-async def test_resolve_twitter_link(env):
+@patch('oryxbot.image_resolver.Twitter')
+async def test_resolve_twitter_link(twitter, env):
     session = MagicMock()
     first_call = MagicMock()
-    second_call = MagicMock()
 
     first_call.__aenter__.return_value.real_url = MagicMock(host='twitter.com',
                                                             path='/dsadsa/dsa/status/1234')
-    second_call.__aenter__.return_value.json.return_value = {'includes': {'media': [{'media_key': 'key_1'}]}}
 
-    session.get.side_effect = [first_call, second_call]
+    session.get.side_effect = [first_call]
+    twitter.return_value.tweet_detail.return_value = MagicMock(media=[{"media_key": "key_1"}])
     assert await resolve(session, 'https://twitter.com/UAWeapons/status/1667622822594617344') == ['key_1']
 
 

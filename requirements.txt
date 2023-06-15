@@ -6,5 +6,6 @@ mock
 Pillow
 pytest
 pytest-asyncio
+tweety
 tweepy
 waybackpy
