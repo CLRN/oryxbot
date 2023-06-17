@@ -91,3 +91,14 @@ if __name__ == '__main__':
     else:
         losses = asyncio.run(compare_with_last())
         asyncio.run(publish_losses(losses))
+
+        if losses:
+            diff, dt = asyncio.run(compare_against_date(datetime.utcnow().date() - timedelta(days=1)))
+            publish_date_diff(diff, dt)
+
+            diff, dt = asyncio.run(compare_against_date(datetime.utcnow().date() - timedelta(days=7)))
+            publish_date_diff(diff, dt)
+
+            diff, dt = asyncio.run(compare_against_date(date(2023, 6, 5)))
+            publish_date_diff(diff, dt)
+
