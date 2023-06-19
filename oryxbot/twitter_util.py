@@ -1,5 +1,6 @@
 import logging
 import os
+import time
 from collections import defaultdict
 from datetime import date, datetime
 from itertools import groupby, zip_longest
@@ -7,7 +8,7 @@ from tempfile import NamedTemporaryFile
 from typing import List, Tuple
 
 from aiohttp import ClientSession
-from tweepy import Client, API, OAuthHandler
+from tweepy import Client, API, OAuthHandler, TooManyRequests
 
 from oryxbot.image_resolver import resolve
 from oryxbot.parser import Loss
@@ -31,7 +32,8 @@ def publish_date_diff(losses: List[Tuple[str, Loss]], date_: date):
     now = datetime.utcnow()
     interval_str = f"{now - date_}".split(".")[0]
     items = [[f"Losses for {interval_str} between {date_.isoformat()} and {now.isoformat()}"],
-             [f"{country.capitalize()} losses: {len(data)}" for country, data in country_items.items()]]
+             [f"{country.capitalize()} losses: {len(list(filter(lambda x: x[0] == country, losses)))}"
+              for country in country_items.keys()]]
 
     sorted_by_name = {c: sorted(data) for c, data in country_items.items()}
 
@@ -72,10 +74,15 @@ async def publish_losses(losses: List[Tuple[str, Loss]]):
     async with ClientSession() as session:
         for country, loss in losses:
             logging.info(f"{country=}, {loss=}")
-            try:
-                client.create_tweet(
-                    text=f"{country} {loss.type} {loss.status}: {loss.link}",
-                    media_ids=await resolve(session, loss.link)
-                )
-            except Exception:
-                logging.exception(f"Failed to publish diff")
+            while True:
+                try:
+                    client.create_tweet(
+                        text=f"{country} {loss.type} {loss.status}: {loss.link}",
+                        media_ids=await resolve(session, loss.link)
+                    )
+                    break
+                except TooManyRequests:
+                    time.sleep(10)
+                except Exception:
+                    logging.exception(f"Failed to publish diff")
+                    break
