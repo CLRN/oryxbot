@@ -21,7 +21,7 @@ S3_PATH_LAST = os.getenv('S3_PATH_LAST', 'oryx/last.json')
 S3_PATH_DELTA = os.getenv('S3_PATH_DELTA', f'oryx/{datetime.utcnow().isoformat()}.json')
 
 
-async def compare_with_last() -> List[Tuple[str, Loss]]:
+async def compare_with_last_and_publish() -> List[Tuple[str, Loss]]:
     async with ClientSession() as session:
         async def _get(url: str):
             async with session.get(url) as r:
@@ -46,6 +46,7 @@ async def compare_with_last() -> List[Tuple[str, Loss]]:
         await put(S3_PATH_LAST, dict(zip(URLS.values(), new_losses)))
 
         if diff_losses:
+            await publish_losses(diff_losses)
             await put(S3_PATH_DELTA, list(map(lambda x: [x[0], asdict(x[1])], diff_losses)))
 
     return diff_losses
@@ -89,8 +90,7 @@ if __name__ == '__main__':
             logging.exception(f"Failed to process diff")
         list(map(save_url, URLS.keys()))
     else:
-        losses = asyncio.run(compare_with_last())
-        asyncio.run(publish_losses(losses))
+        losses = asyncio.run(compare_with_last_and_publish())
 
         if losses:
             diff, dt = asyncio.run(compare_against_date(datetime.utcnow().date() - timedelta(days=1)))

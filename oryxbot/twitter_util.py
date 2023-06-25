@@ -8,7 +8,7 @@ from tempfile import NamedTemporaryFile
 from typing import List, Tuple
 
 from aiohttp import ClientSession
-from tweepy import Client, API, OAuthHandler, TooManyRequests
+from tweepy import Client, API, OAuthHandler, TooManyRequests, BadRequest
 
 from oryxbot.image_resolver import resolve
 from oryxbot.parser import Loss
@@ -71,6 +71,7 @@ async def publish_losses(losses: List[Tuple[str, Loss]]):
         access_token=os.environ['ACCESS_TOKEN'],
         access_token_secret=os.environ['ACCESS_TOKEN_SECRET'],
     )
+    use_media = True
     async with ClientSession() as session:
         for country, loss in losses:
             logging.info(f"{country=}, {loss=}")
@@ -78,11 +79,17 @@ async def publish_losses(losses: List[Tuple[str, Loss]]):
                 try:
                     client.create_tweet(
                         text=f"{country} {loss.type} {loss.status}: {loss.link}",
-                        media_ids=await resolve(session, loss.link)
+                        media_ids=await resolve(session, loss.link) if use_media else None
                     )
+                    use_media = True
                     break
                 except TooManyRequests:
-                    time.sleep(10)
+                    time.sleep(60)
+                except BadRequest:
+                    if not use_media:
+                        raise
+                    logging.exception(f"Unable to post, trying without media")
+                    use_media = False
                 except Exception:
                     logging.exception(f"Failed to publish diff")
-                    break
+                    raise
