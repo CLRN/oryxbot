@@ -1,3 +1,4 @@
+import logging
 import re
 from dataclasses import dataclass
 from enum import Enum
@@ -50,10 +51,13 @@ def parse_losses(body: bytes) -> Iterator[Loss]:
             continue
 
         for item in re.findall(r'\d+', link.text):
-            status = next(filter(lambda x: x[1].value in link.text, enumerate(Status)))[1]
-            yield Loss(
-                type=match.group(1).strip(':'),
-                status=status.value,
-                number=int(item),
-                link='http' + link.attrib['href'].strip().split('http')[-1]
-            )
+            try:
+                status = next(filter(lambda x: x[1].value in link.text, enumerate(Status)))[1]
+                yield Loss(
+                    type=match.group(1).strip(':'),
+                    status=status.value,
+                    number=int(item),
+                    link='http' + link.attrib['href'].strip().split('http')[-1]
+                )
+            except Exception:
+                logging.exception(f"Failed to parse {link.text}")
