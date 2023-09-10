@@ -3,7 +3,7 @@ aiohttp
 botocore
 lxml
 mock
-Pillow
+Pillow==9.5.0
 pytest
 pytest-asyncio
 tweety-ns==0.7.1
