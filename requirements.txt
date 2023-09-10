@@ -6,6 +6,6 @@ mock
 Pillow
 pytest
 pytest-asyncio
-tweety-ns
-tweepy
+tweety-ns==0.7.1
+tweepy==4.14.0
 waybackpy
